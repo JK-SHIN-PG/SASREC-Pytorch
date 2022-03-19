@@ -45,7 +45,7 @@ class SASREC(nn.Module):
 
         return positive_logit, negative_logit
 
-    def prdict(self, x, idx):
+    def predict(self, x, idx):
         # out : [batch_size, seq_len, emb_dimension]
         out = self.model(x)
 
