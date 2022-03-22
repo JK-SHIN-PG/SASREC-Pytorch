@@ -20,6 +20,7 @@ def train(model, iterator, criterion, optimizer, device):
         loss = criterion(pos_logit[index], pos_label[index]) + \
             criterion(neg_logit[index], neg_label[index])
         loss.backward()
+        epoch_loss += loss.item()
         optimizer.step()
 
     return epoch_loss / len(iterator)
@@ -30,18 +31,21 @@ def eval(model, iterator, criterion, num_item, device):
     epoch_acc = 0
     with torch.no_grad():
         for batch_index, (x, pos, _) in enumerate(iterator):
+            batch_acc = 0
             item_candidate = torch.LongTensor(
                 torch.arange(0, num_item).repeat(x.shape[0], 1))
-            input = x[:, :2]
-            target = pos[:, 1]
-            pred_logit, pred_label = model.predict(
-                input, item_candidate.to(device))
-            index = np.where(target != 3)
-            #loss = criterion(pred_logit[index], target[index])
-            prediction = torch.argmax(pred_label, dim=1)
-            correct = prediction[index] == target[index].to(device)
-            accuracy = torch.sum(correct) / len(correct)
-            epoch_acc += accuracy
+            for s in range(3, seq_len-1):
+                input = x[:, :s]
+                target = pos[:, s-1]
+                pred_logit, pred_label = model.predict(
+                    input, item_candidate.to(device))
+                index = np.where(target != 3)
+                #loss = criterion(pred_logit[index], target[index])
+                prediction = torch.argmax(pred_label, dim=1)
+                correct = prediction[index] == target[index].to(device)
+                accuracy = torch.sum(correct) / len(correct)
+                batch_acc += accuracy / len(index[0])
+            epoch_acc += batch_acc
 
     return epoch_acc / len(iterator)
 
@@ -65,12 +69,12 @@ if __name__ == "__main__":
 
     # Hyper-parameter setting
     num_item = len(unique_list)
-    embedding_dim = 128
+    embedding_dim = 256
     seq_len = 20
     dropout_rate = 0.2
-    num_blocks = 3
-    num_heads = 4  # embedding_dim must be divisible by num_heads
-    BATCH_SIZE = 128
+    num_blocks = 6
+    num_heads = 8  # embedding_dim must be divisible by num_heads
+    BATCH_SIZE = 256
     lr = 0.0005
     epoch = 10
     # positive answer sequence
@@ -90,12 +94,12 @@ if __name__ == "__main__":
     item_candidate = torch.LongTensor(
         torch.arange(0, num_item).repeat(BATCH_SIZE, 1))
 # %%
-    for ep in range(100):
+    for ep in range(1000):
         loss = train(model, train_loader, criterion, optimizer, device)
-        # if ep%10 == 0:
-        acc = eval(model, test_loader, criterion, num_item, device)
-
-        print("loss(train) : {} \t acc(eval) {}: {} \n".format(ep, loss.item()))
+        if ep % 10 == 0:
+            acc = eval(model, train_loader, criterion, num_item, device)
+            print("epoch : {} \t loss(train) : {:.5f} \t acc(train) : {:.5f} \n".format(
+                ep, loss, acc))
 
 
 #    def train(model, train_loader, optimizer):
