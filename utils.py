@@ -58,3 +58,11 @@ def load_unique_label(path):
     df['index'] = [i for i in range(len(df))]
     unique_dic = df.set_index("0").to_dict()["index"]
     return unique_list, unique_dic
+
+
+def negative_sampler(batch_size, seq_len, num_item):
+
+    random_sample = torch.randint(
+        0, num_item-1, (batch_size, seq_len))
+
+    return random_sample

@@ -6,29 +6,35 @@ import numpy as np
 import pandas as pd
 from utils import adjust_seq_length
 from tqdm import tqdm
+import copy
 
 
 class Dataset(Dataset):
-    def __init__(self, labels):
-        self.labels = torch.tensor(labels, dtype=torch.int64)
+    def __init__(self, data, neg):
+        data = torch.tensor(data, dtype=torch.int64)
+        self.seq = copy.deepcopy(data[:, :-1])
+        self.pos = copy.deepcopy(data[:, 1:])
+        self.neg = torch.tensor(neg, dtype=torch.int64)
 
     def __getitem__(self, idx):
-        #x = torch.tensor(self.data[idx], dtype = torch.float32)
-        label = self.labels[idx]
-        #label = torch.tensor(self.labels[idx], dtype = torch.int64)
-        return label
+
+        seq = self.seq[idx]
+        pos = self.pos[idx]
+        neg = self.neg[idx]
+
+        return seq, pos, neg
 
     def __len__(self):
-        return len(self.labels)
+        return len(self.seq)
 
 
-def Data_load(index_label, BATCH_SIZE):
+def Data_load(data, neg, BATCH_SIZE):
 
-    train_dataset = Dataset(index_label)
+    train_dataset = Dataset(data, neg)
     train_loader = DataLoader(train_dataset, shuffle=True,
                               batch_size=BATCH_SIZE,  num_workers=8, persistent_workers=True)
     print("Data_loading : Complete!")
-    return index_label.shape, train_loader
+    return train_loader
 
 
 def collect_data(PATH, filename):
